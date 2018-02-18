@@ -59,6 +59,10 @@ public class Steganograph implements PlugInFilter {
 	private class Options extends Object {
 		/* The chosen character set */
 		private Charset charset;
+
+		/* int to store number of image channels (1 for grayscale, 3 for rgb).
+		   Default is 3. */
+		private int nChannels = 3;
 		
 		/* enum to set this as an encode or decode operation */
 		private OpType optype;
@@ -100,11 +104,17 @@ public class Steganograph implements PlugInFilter {
 		public OpType getOpType(){
 			return optype;
 		}
+		public int getNChannels(){
+			return nChannels;
+		}
 		public void setCharset(Charset charset){
 			this.charset = charset;
 		}
 		public void setOpType(OpType optype){
 			this.optype = optype;
+		}
+		public void setNChannels(int nChannels){
+			this.nChannels = (nChannels<3 ?  1  :  3 );
 		}
 		public void setCharsetFromString(String str){
 			for(int i = 0; i<SupportedCharsets.CHARSETSTRS.length; i++){
@@ -204,8 +214,10 @@ public class Steganograph implements PlugInFilter {
 	public void run(ImageProcessor ip){
 		this.ip = ip;
 
-		//Get user input to configure the operation, most notably the charset
+		//Get user input to configure the operation
 		Options opts = config();
+
+		//opts.setNChannels(ip.getNChannels());
 
 		GenericDialog gd 		= new GenericDialog("Results");
 		GenericDialog summary 	= new GenericDialog("Exit Summary");
@@ -218,6 +230,23 @@ public class Steganograph implements PlugInFilter {
 		// ============ ENCODING OPERATION ============
 		if(opts.getOpType().equals(OpType.ENCODE)){
 			// get info from the image
+			int width 		= ip.getWidth();
+			int height 		= ip.getHeight();
+			int bitDepth 	= ip.getBitDepth(); 	// 8, 16, 24, 32
+			int pixSize 	= bitDepth/8; 			// 1, 2,  3,  4
+			int nPixels  	= width * height;
+			int capacity 	= (nPixels*pixSize)/8;
+
+			StringBuilder imgInfo = new StringBuilder("=== IMAGE INFO ===\n");
+			imgInfo.append("Pixels: ");
+			imgInfo.append(nPixels);
+			imgInfo.append("\n");
+			imgInfo.append("Max Capacity (bytes): ");
+			imgInfo.append(capacity);
+			imgInfo.append("\n");
+
+
+			summary.addMessage(imgInfo.toString());
 
 			// open plain text file
 			File plaintxt;
@@ -232,7 +261,7 @@ public class Steganograph implements PlugInFilter {
 					fis = new FileInputStream(plaintxt); 	// init a file input stream
 					summary.addMessage("Path to Plaintext File: "+ plaintxt.getPath());
 				
-					// read in data
+					// read data into a byte array of
 
 
 					// close input stream
@@ -250,7 +279,9 @@ public class Steganograph implements PlugInFilter {
 			}finally{
 				
 			}
-			// read in image from ip
+
+			// copy the image - this is the one that we put the data in
+			ImageProcessor newIP = ip.duplicate();
 
 			// modify data
 
