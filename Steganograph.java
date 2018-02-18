@@ -3,6 +3,7 @@ import ij.io.*;
 import ij.process.*;
 import ij.gui.*; // HTMLDialog
 import java.awt.*;
+import java.io.*; // File, FileInputStream
 import ij.plugin.filter.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -188,10 +189,13 @@ public class Steganograph implements PlugInFilter {
 	}
 
 
+	public File openTextFile(String dialogTitle){
+		OpenDialog od = new OpenDialog(dialogTitle);
 
-
-	public boolean getTextFile(){
-		return true;
+		if(od.getPath() != null)
+			return new File( od.getPath() );
+		else
+			return null;
 	}
 
 	/** 
@@ -203,20 +207,82 @@ public class Steganograph implements PlugInFilter {
 		//Get user input to configure the operation, most notably the charset
 		Options opts = config();
 
-		GenericDialog gd = new GenericDialog("Results");
+		GenericDialog gd 		= new GenericDialog("Results");
+		GenericDialog summary 	= new GenericDialog("Exit Summary");
 
 		gd.addMessage(opts.toString());
-		gd.showDialog();
-		// Open the text file
-		// if(getTextFile()){
-		// 	// Got tha file
-		// }
+		summary.addMessage(opts.toString());
+		//gd.showDialog();
+
+
+		// ============ ENCODING OPERATION ============
+		if(opts.getOpType().equals(OpType.ENCODE)){
+			// get info from the image
+
+			// open plain text file
+			File plaintxt;
+			FileInputStream fis;
+
+			try{
+				plaintxt 	= openTextFile("Select Plain-Text...");
+				fis 		= null;
+
+				if(plaintxt != null){
+
+					fis = new FileInputStream(plaintxt); 	// init a file input stream
+					summary.addMessage("Path to Plaintext File: "+ plaintxt.getPath());
+				
+					// read in data
+
+
+					// close input stream
+					fis.close();
+
+				}else{
+					summary.addMessage("No file path provided.");
+				}
+			}
+			catch(FileNotFoundException e){
+				summary.addMessage("Error: File Not Found :(");
+			}
+			catch(IOException e){
+				summary.addMessage("Error: IOException");
+			}finally{
+				
+			}
+			// read in image from ip
+
+			// modify data
+
+			// choose save location for new image
+
+			// write new image
+
+			
+
+
+
+
+		}
+
+
+
+		// ============ DECODING OPERATION ============
+		else{
+			// open original image (source image)
+
+			// extract plaintext data
+
+			// select save location for the new plaintext file 
+
+			// write to the file
+
+		}
 		
 
-		// do the encoding, writing to a new image
+		// Exit operation
+		summary.showDialog();
 
-		// Choose save location
-		
 	}
 
 
