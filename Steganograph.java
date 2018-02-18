@@ -20,12 +20,16 @@ public class Steganograph implements PlugInFilter {
 	ImagePlus imp;
 	ImageProcessor ip;
 
-	/**
-	 * 	A class to organize configuration options for the Steganograph plugin.
-	 * 	The configuration is for:
-	 * 		- text encoding
-	 */
+	/* Title for the about dialog */
+	private String sTitle 		= "Steganograph";
 
+	/* Description for the about dialog */
+	private String sDescription = "This is an ImageJ Plugin that will encode text into an image.";
+
+
+	/**
+	 * This class organizes the supported charsets for this application
+	 */
 	private static class SupportedCharsets {
 		public static final String[] 	CHARSETSTRS = 	{	"UTF-16", 	"UTF-8", 	"7-bit ASCII"	};
 		public enum 					CHARSETS 		{	 UTF_16 , 	 UTF_8 , 	 ASCII_7_BIT 	};
@@ -41,11 +45,15 @@ public class Steganograph implements PlugInFilter {
 			return retval;
 		}
 	}
-	public class Options extends Object {
-		private Charset charset;
 
-		// public final String[] 	CHARSETSTRS = 	{	"UTF-16", 	"UTF-8", 	"7-bit ASCII"	};
-		// public static final enum CHARSETS 		{	 UTF_16 , 	 UTF_8 , 	 ASCII_7_BIT 	};
+	/**
+	 * 	A class to organize configuration options for the Steganograph plugin.
+	 * 	This class specifies configuration for:
+	 * 		- text encoding
+	 */
+	private class Options extends Object {
+		/* The chosen character set */
+		private Charset charset;
 
 		public Options(){
 			this(StandardCharsets.UTF_16);	// UTF-16 is java default
@@ -80,7 +88,7 @@ public class Steganograph implements PlugInFilter {
 		@Override
 		public String toString(){
 			StringBuilder sb = new StringBuilder();
-			sb.append("ENCODING:\t");
+			sb.append("ENCODING: ");
 			sb.append(  SupportedCharsets.toString( getCharset() )  ); 
 			// switch(getCharset()){
 			// 	case StandardCharsets.UTF_16: 	sb.append("UTF-16"); 		break;
@@ -100,7 +108,7 @@ public class Steganograph implements PlugInFilter {
      */
 	public int setup(String arg, ImagePlus imp) {
 		if(arg.equalsIgnoreCase("about")){
-			//showAbout();
+			showAbout();
 			return DONE;
 		}
 		this.imp = imp;
@@ -168,6 +176,11 @@ public class Steganograph implements PlugInFilter {
 		// Choose save location
 
 
+	}
+
+
+	void showAbout(){
+		IJ.showMessage(sTitle, sDescription);
 	}
 
 }
