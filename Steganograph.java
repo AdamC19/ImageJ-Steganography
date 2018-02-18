@@ -5,8 +5,9 @@ import ij.gui.*; // HTMLDialog
 import java.awt.*;
 import java.io.*; // File, FileInputStream
 import ij.plugin.filter.*;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.nio.*;
+import java.nio.charset.*;
+//import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -59,10 +60,6 @@ public class Steganograph implements PlugInFilter {
 	private class Options extends Object {
 		/* The chosen character set */
 		private Charset charset;
-
-		/* int to store number of image channels (1 for grayscale, 3 for rgb).
-		   Default is 3. */
-		private int nChannels = 3;
 		
 		/* enum to set this as an encode or decode operation */
 		private OpType optype;
@@ -104,17 +101,11 @@ public class Steganograph implements PlugInFilter {
 		public OpType getOpType(){
 			return optype;
 		}
-		public int getNChannels(){
-			return nChannels;
-		}
 		public void setCharset(Charset charset){
 			this.charset = charset;
 		}
 		public void setOpType(OpType optype){
 			this.optype = optype;
-		}
-		public void setNChannels(int nChannels){
-			this.nChannels = (nChannels<3 ?  1  :  3 );
 		}
 		public void setCharsetFromString(String str){
 			for(int i = 0; i<SupportedCharsets.CHARSETSTRS.length; i++){
@@ -208,6 +199,53 @@ public class Steganograph implements PlugInFilter {
 			return null;
 	}
 
+	/**
+	 * 
+	 */
+	public boolean addDataToImg(ImageProcessor ip, FileInputStream fis) throws IOException{
+
+		if(ip.getNChannels() != 3){
+			return false;
+		}
+
+		int[] intPixels = (int[])ip.getPixels();
+
+
+		// read thru the file byte-by-byte and do the operation to
+		// add the data into the image
+		int pixSize  = 4;   // bytes per pixel
+		int data    = 0;
+		int tmp     = 0;
+		int rawIndex = 0; 	// index of the bytes of the pixels
+		int pixIndex = 0; 	// selects the pixel
+		int pixelVal = 0; 	// int value of the pixel
+		int dataInt  = 0;   //
+		int capacity = intPixels.length * (8/pixSize);
+		for(int i = 0; fis.available()>0 && i<capacity; i++){
+
+			data = fis.read();
+
+			// iterate over 1 byte
+			for(byte b = 0; b<8; b++){
+				rawIndex = 8*i + b;
+				tmp = ( data>>(7-b) ) & 1; 	// access the desired bit, MSB first
+				dataInt = (dataInt << 8) + tmp; // shift bits over and add our new bit
+
+				if(rawIndex%pixSize == 0){ 		// start of a new pixel, get new pixel data
+					pixIndex = rawIndex/pixSize;
+					pixelVal = intPixels[pixIndex];
+				}
+				if((rawIndex+1)%pixSize == 0 ){ // we've reached the last byte in this pixel
+					// do ops to add the dataInt it
+					// the LSB in each byte of dataInt is the data, rest we know are 0's
+					dataInt = pixelVal ^ dataInt; // XOR, flips the LSB if 1, leaves it same if not
+					intPixels[pixIndex] = dataInt;
+				}
+			}
+		}
+		return true;
+	}
+
 	/** 
 	 * 
 	 */
@@ -236,6 +274,8 @@ public class Steganograph implements PlugInFilter {
 			int pixSize 	= bitDepth/8; 			// 1, 2,  3,  4
 			int nPixels  	= width * height;
 			int capacity 	= (nPixels*pixSize)/8;
+			
+			ImageProcessor newIP; 		// this will hold the duplicate of the image
 
 			StringBuilder imgInfo = new StringBuilder("=== IMAGE INFO ===\n");
 			imgInfo.append("Pixels: ");
@@ -261,11 +301,17 @@ public class Steganograph implements PlugInFilter {
 					fis = new FileInputStream(plaintxt); 	// init a file input stream
 					summary.addMessage("Path to Plaintext File: "+ plaintxt.getPath());
 				
-					// read data into a byte array of
+					// copy the image - this is the one that we put the data in
+					newIP = ip.duplicate();
 
-
+					boolean success = addDataToImg(newIP, fis);
 					// close input stream
 					fis.close();
+
+					summary.addMessage( success ? "Data Addition Succeeded" : "Data Addition Failed");
+
+					ImagePlus newImp = new ImagePlus("Result", newIP);
+					newImp.show();
 
 				}else{
 					summary.addMessage("No file path provided.");
@@ -280,8 +326,7 @@ public class Steganograph implements PlugInFilter {
 				
 			}
 
-			// copy the image - this is the one that we put the data in
-			ImageProcessor newIP = ip.duplicate();
+			
 
 			// modify data
 
