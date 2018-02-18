@@ -1,7 +1,7 @@
 import ij.*;
 import ij.io.*;
 import ij.process.*;
-import ij.gui.*;
+import ij.gui.*; // HTMLDialog
 import java.awt.*;
 import ij.plugin.filter.*;
 import java.nio.charset.Charset;
@@ -12,7 +12,8 @@ import java.nio.charset.StandardCharsets;
  *
  * Steganograph
  *
- * This is a plugin that will encode text into the source image
+ * This is a plugin that will encode text into a source image or decode 
+ * text given an encoded image and the source image.
  *
  */
 
@@ -26,6 +27,8 @@ public class Steganograph implements PlugInFilter {
 	/* Description for the about dialog */
 	private String sDescription = "This is an ImageJ Plugin that will encode text into an image.";
 
+	/* Enum for flagging operation type (encode or decode) */
+	private enum OpType{ENCODE, DECODE};
 
 	/**
 	 * This class organizes the supported charsets for this application
@@ -49,31 +52,58 @@ public class Steganograph implements PlugInFilter {
 	/**
 	 * 	A class to organize configuration options for the Steganograph plugin.
 	 * 	This class specifies configuration for:
-	 * 		- text encoding
+	 * 		- text encoding (default: UTF-16)
+	 * 		- operation type, encode or decode (default: encode)
 	 */
 	private class Options extends Object {
 		/* The chosen character set */
 		private Charset charset;
+		
+		/* enum to set this as an encode or decode operation */
+		private OpType optype;
 
 		public Options(){
-			this(StandardCharsets.UTF_16);	// UTF-16 is java default
+			this(StandardCharsets.UTF_16, OpType.ENCODE);	// UTF-16 is java default
 		}
 
 		public Options(String str){
+			this(str, OpType.ENCODE);
+		}
+
+		public Options(String encstr, String opstr){
 			this();
+			setCharsetFromString(encstr);
+			setOpTypeFromString(opstr);
+		}
+
+		public Options(String str, OpType optype){
+			this(optype);
 			setCharsetFromString(str);
-			
 		}
 
 		public Options(Charset charset){
+			this(charset, OpType.ENCODE);
+		}
+		public Options(OpType optype){
+			this(StandardCharsets.UTF_16, optype);
+		}
+
+		public Options(Charset charset, OpType optype){
 			this.charset = charset;
+			this.optype  = optype;
 		}
 
 		public Charset getCharset(){
 			return charset;
 		}
+		public OpType getOpType(){
+			return optype;
+		}
 		public void setCharset(Charset charset){
 			this.charset = charset;
+		}
+		public void setOpType(OpType optype){
+			this.optype = optype;
 		}
 		public void setCharsetFromString(String str){
 			for(int i = 0; i<SupportedCharsets.CHARSETSTRS.length; i++){
@@ -84,18 +114,22 @@ public class Steganograph implements PlugInFilter {
 				}
 			}
 		}
+		public void setOpTypeFromString(String str){
+			if( str.equalsIgnoreCase("ENCODE") ){
+				this.optype = OpType.ENCODE;
+			}else{
+				this.optype = OpType.DECODE;
+			}
+		}
 
 		@Override
 		public String toString(){
 			StringBuilder sb = new StringBuilder();
 			sb.append("ENCODING: ");
 			sb.append(  SupportedCharsets.toString( getCharset() )  ); 
-			// switch(getCharset()){
-			// 	case StandardCharsets.UTF_16: 	sb.append("UTF-16"); 		break;
-			// 	case StandardCharsets.UTF_8: 	sb.append("UTF-8"); 		break;
-			// 	case StandardCharsets.US_ASCII:	sb.append("7-bit ASCII"); 	break;
-			// }
-			
+			sb.append("\n");
+			sb.append("OPERATION: ");
+			sb.append( getOpType().equals(OpType.ENCODE) ? "Encode" : "Decode" );
 			return sb.toString();
 		}
 	}
@@ -132,14 +166,22 @@ public class Steganograph implements PlugInFilter {
 								items.length,
 								1,
 								items[0] );
-		
+		String[] items2 = {"Encode", "Decode"};
+		gd.addRadioButtonGroup( "This is a second group label",
+								items2,
+								2,
+								1,
+								items2[0] );
 		gd.showDialog();
 
 		if(gd.wasCanceled()){
 			options = new Options();
 		}else{
-			String choice = gd.getNextRadioButton();
-			options = new Options(choice);
+			// Vector<String> v = gd.getRadioButtonGroups();
+			String encoding  = gd.getNextRadioButton();
+			String operation = gd.getNextRadioButton();
+			options = new Options(encoding, operation);
+
 		}
 
 		return options;
@@ -174,8 +216,7 @@ public class Steganograph implements PlugInFilter {
 		// do the encoding, writing to a new image
 
 		// Choose save location
-
-
+		
 	}
 
 
